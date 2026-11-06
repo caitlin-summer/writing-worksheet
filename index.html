@@ -68,6 +68,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .check{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:13px}
 .check input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px}
 .check small{display:block;color:var(--ink-2);font-size:12px}
+.types{display:flex;flex-direction:column;gap:10px;padding-bottom:14px;margin-bottom:14px;border-bottom:1px dashed var(--line)}
+.types .f{margin-bottom:0}
 
 /* words */
 #words{display:flex;flex-direction:column;gap:10px}
@@ -139,7 +141,7 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
       </div>
       <div>
         <h1>Trace</h1>
-        <p>Tạo phiếu tập viết A4 cho lớp học</p>
+        <p>Tạo phiếu bài tập A4 cho lớp học</p>
       </div>
     </div>
     <div class="actions">
@@ -183,36 +185,63 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
           Thêm từ
         </button>
-        <p class="note" style="margin-top:10px">Mẹo: bấm vào ô ảnh của từ rồi nhấn <b>Ctrl+V</b> để dán ảnh (hoặc dán ngay khi đang gõ từ đó). Cũng có thể kéo thả file ảnh vào. Ảnh được tự động chuyển thành đen trắng khi in.</p>
+        <p class="note" style="margin-top:10px">Mẹo: bấm vào ô ảnh của từ rồi nhấn <b>Ctrl+V</b> để dán ảnh (hoặc dán ngay khi đang gõ từ đó). Cũng có thể kéo thả file ảnh vào. Ảnh được tự động chuyển thành đen trắng khi in (có thể bật in màu ở phần Bố cục).</p>
         <datalist id="vocabList"></datalist>
       </section>
 
       <section class="card">
-        <h2><span class="n">3</span> Bố cục</h2>
-        <div class="grid2">
-          <div>
-            <label class="f" for="lines">Số dòng tập viết: <span class="range-val" id="linesVal"></span></label>
-            <input type="range" id="lines" min="3" max="9" step="1">
+        <h2><span class="n">3</span> Dạng bài &amp; bố cục</h2>
+
+        <div class="types">
+          <label class="f">Dạng bài trong phiếu (chọn một hoặc nhiều)</label>
+          <label class="check"><input type="checkbox" id="tTrace">
+            <span>Tập viết<small>Ảnh + các dòng tô theo từ.</small></span>
+          </label>
+          <label class="check"><input type="checkbox" id="tTick">
+            <span>Look, read and tick<small>Mỗi ảnh có 4 từ, học sinh đánh dấu ✓ vào từ đúng.</small></span>
+          </label>
+          <div id="tickWrap" hidden>
+            <label class="f" for="extras">Từ gây nhiễu thêm (tuỳ chọn, cách nhau bằng dấu phẩy)</label>
+            <input type="text" id="extras" placeholder="VD: pen, bell, head, garden" autocomplete="off" spellcheck="false">
+            <p class="note" style="margin-top:6px">Mặc định các từ khác trong danh sách sẽ được dùng làm đáp án nhiễu.</p>
           </div>
-          <div>
-            <label class="f" for="perPage">Số từ mỗi trang</label>
-            <select id="perPage">
-              <option value="auto">Tự động</option>
-              <option value="1">1 từ / trang</option>
-              <option value="2">2 từ / trang</option>
-              <option value="3">3 từ / trang</option>
-              <option value="4">4 từ / trang</option>
-            </select>
+          <label class="check"><input type="checkbox" id="tMatch">
+            <span>Nối ảnh với từ<small>Ảnh hai bên, từ ở giữa (đã xáo trộn), học sinh nối bằng bút.</small></span>
+          </label>
+        </div>
+
+        <div id="traceOpts">
+          <div class="grid2">
+            <div>
+              <label class="f" for="lines">Số dòng tập viết: <span class="range-val" id="linesVal"></span></label>
+              <input type="range" id="lines" min="3" max="9" step="1">
+            </div>
+            <div>
+              <label class="f" for="perPage">Số từ mỗi trang (tập viết)</label>
+              <select id="perPage">
+                <option value="auto">Tự động</option>
+                <option value="1">1 từ / trang</option>
+                <option value="2">2 từ / trang</option>
+                <option value="3">3 từ / trang</option>
+                <option value="4">4 từ / trang</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <label class="check"><input type="checkbox" id="sample">
+              <span>Thêm dòng mẫu mờ để tô theo<small>Dòng đầu tiên in sẵn từ màu xám nhạt.</small></span>
+            </label>
+            <div id="repeatWrap" style="margin-top:10px" hidden>
+              <label class="f" for="repeat">Số lần lặp từ trên dòng mẫu: <span class="range-val" id="repeatVal"></span></label>
+              <input type="range" id="repeat" min="2" max="10" step="1">
+            </div>
           </div>
         </div>
+
         <div style="margin-top:14px">
-          <label class="check"><input type="checkbox" id="sample">
-            <span>Thêm dòng mẫu mờ để tô theo<small>Dòng đầu tiên in sẵn từ màu xám nhạt.</small></span>
+          <label class="check"><input type="checkbox" id="color">
+            <span>In ảnh màu<small>Mặc định ảnh được chuyển đen trắng để tiết kiệm mực.</small></span>
           </label>
-          <div id="repeatWrap" style="margin-top:10px" hidden>
-            <label class="f" for="repeat">Số lần lặp từ trên dòng mẫu: <span class="range-val" id="repeatVal"></span></label>
-            <input type="range" id="repeat" min="2" max="10" step="1">
-          </div>
         </div>
       </section>
 
@@ -239,7 +268,7 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
           <span class="pill" id="stats"></span>
         </div>
         <div class="pv-scroll" id="pvScroll">
-          <div id="pvBox"><iframe id="pvFrame" title="Xem trước phiếu tập viết" sandbox="allow-same-origin"></iframe></div>
+          <div id="pvBox"><iframe id="pvFrame" title="Xem trước phiếu bài tập" sandbox="allow-same-origin"></iframe></div>
           <div class="pv-empty" id="pvEmpty" hidden>Nhập ít nhất một từ để xem trước phiếu.</div>
         </div>
       </div>
@@ -309,9 +338,11 @@ const DEFAULT_WORDS = [
   { id: 3, text: 'Birds', emoji: '🐦', image: null },
   { id: 4, text: 'Cows', emoji: '🐄', image: null }
 ];
+const DEFAULT_TYPES = { trace: true, tick: false, match: false };
 const state = {
   words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, activeId: null,
-  schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5
+  schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5,
+  types: { ...DEFAULT_TYPES }, extras: '', color: false
 };
 let lib = []; // image library: {id,name,data,vocab,created}
 let vocab = []; // saved vocabulary: {key,text,emoji,image}
@@ -332,7 +363,7 @@ function wordsPerPage() {
 
 /* ---------- persistence ---------- */
 const persist = debounce(async () => {
-  const slim = { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, words: state.words, nextId: state.nextId };
+  const slim = { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, words: state.words, nextId: state.nextId };
   await Store.put('kv', slim, 'draft');
 }, 500);
 
@@ -342,9 +373,16 @@ async function load() {
   vocab = await Store.all('vocab');
   const d = await Store.get('kv', 'draft');
   if (d) {
-    Object.assign(state, { schoolName: d.schoolName || '', logo: d.logo || null, lines: d.lines || 5, perPage: d.perPage || 'auto', sample: !!d.sample, repeat: d.repeat || 5 });
+    Object.assign(state, { schoolName: d.schoolName || '', logo: d.logo || null, lines: d.lines || 5, perPage: d.perPage || 'auto', sample: !!d.sample, repeat: d.repeat || 5, extras: d.extras || '', color: !!d.color });
+    state.types = normTypes(d.types);
     if (Array.isArray(d.words)) { state.words = d.words; state.nextId = d.nextId || (Math.max(0, ...d.words.map(w => w.id)) + 1); }
   }
+}
+function normTypes(t) {
+  const r = { ...DEFAULT_TYPES, ...(t || {}) };
+  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match;
+  if (!r.trace && !r.tick && !r.match) r.trace = true;
+  return r;
 }
 
 /* ---------- images ---------- */
@@ -411,22 +449,138 @@ body{font-family:'Lexend',sans-serif;background:#fff;color:#000;-webkit-print-co
 .word-block:first-of-type{padding-top:2px}
 .word-block:last-child{border-bottom:none;padding-bottom:0}
 .image-container{flex:0 0 38%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 8px;gap:4px;min-height:0;overflow:hidden}
-.worksheet-image{flex:1 1 0;min-height:0;max-width:100%;max-height:100%;object-fit:contain;filter:grayscale(100%) contrast(1.15) brightness(1.05);border:1px solid #555;border-radius:2px}
+.worksheet-image{flex:1 1 0;min-height:0;max-width:100%;max-height:100%;object-fit:contain;border:1px solid #555;border-radius:2px}
+.worksheet-image,.pic{filter:grayscale(100%) contrast(1.15) brightness(1.05)}
+body.color .worksheet-image,body.color .pic{filter:none}
 .emoji-placeholder{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;font-size:90px;line-height:1}
 .sample-word{flex-shrink:0;font-size:15pt;font-weight:700;text-align:center;letter-spacing:.5px;padding:2px 0;line-height:1.2}
 .tracing-lines{display:flex;flex-direction:column;justify-content:center;gap:16px;padding:4px 6px;flex:1;min-width:0}
 .trace-line{font-size:13.5pt;font-weight:400;letter-spacing:.5px;color:#ccc;border-bottom:1px dashed #bbb;word-spacing:.3em;padding:0 4px;height:28px;display:flex;align-items:center;line-height:1;white-space:nowrap;overflow:hidden}
 .trace-line.model{color:#b5b5b5}
+
+/* shared by the tick + match exercises */
+.ex-title{flex-shrink:0;font-size:14pt;font-weight:500;font-style:italic;text-align:center;margin:2px 0 8px}
+.pic-wrap{position:relative;overflow:hidden}
+.pic{position:absolute;inset:2mm;width:calc(100% - 4mm);height:calc(100% - 4mm);object-fit:contain}
+.pic-emoji{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:64px;line-height:1}
+
+/* Look, read and tick: rows stretch (1fr) to fill the page; row count + max-height are set inline */
+.tick-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm 6mm;flex:1 1 auto;min-height:0}
+.tick-block{display:flex;align-items:stretch;border:1.2px solid #333;border-radius:2px;min-height:0;overflow:hidden}
+.tick-block.rev{flex-direction:row-reverse}
+.tick-img{flex:0 0 38%}
+.tick-opts{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-evenly;padding:2mm}
+.opt{display:flex;align-items:center;gap:2.5mm;border:1.2px solid #333;border-radius:99px;height:9mm;padding:0 1.2mm;font-size:13pt;line-height:1}
+.opt .circ{width:6.4mm;height:6.4mm;border:1.2px solid #333;border-radius:50%;flex:none;background:#fff}
+.opt .w{flex:1;min-width:0;white-space:nowrap;overflow:hidden}
+.tick-block.rev .opt{flex-direction:row-reverse}
+.tick-block.rev .opt .w{text-align:right}
+
+/* Matching: rows stretch (1fr) to fill the page; row count + max-height are set inline */
+.match-grid{display:grid;grid-template-columns:52mm 1fr 52mm;flex:1 1 auto;min-height:0}
+.match-box{border:1.2px solid #333;border-radius:2px;height:calc(100% - 2mm);max-height:52mm;aspect-ratio:1/1;max-width:100%;align-self:center;justify-self:center}
+.match-word{justify-self:center;align-self:center;width:72%;height:11mm;border:1.2px solid #333;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:16pt;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden}
 `;
 const PREVIEW_CSS = `html{background:#e8e2d2}body{background:transparent;width:210mm}.page{margin:0 0 16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}.page:last-child{margin-bottom:0}`;
 
+/* deterministic shuffle so the preview, the print and re-renders always agree */
+function seedRand(str) {
+  let h = 2166136261;
+  for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function shuffled(arr, seed) {
+  const r = seedRand(seed), a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+/* split into pages of at most `max`, spread evenly (13 items → 7 + 6, not 12 + 1) */
+function chunks(arr, max) {
+  if (!arr.length) return [];
+  const n = Math.ceil(arr.length / max), size = Math.ceil(arr.length / n), out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+const picHTML = w => w.image
+  ? `<img class="pic" src="${w.image}" alt="${esc(w.text)}">`
+  : `<div class="pic-emoji">${esc(w.emoji)}</div>`;
+
+function tracePage(pg) {
+  let h = '';
+  pg.forEach(w => {
+    h += '<div class="word-block"><div class="image-container">';
+    h += w.image ? `<img src="${w.image}" alt="${esc(w.text)}" class="worksheet-image">` : `<div class="emoji-placeholder">${esc(w.emoji)}</div>`;
+    h += `<div class="sample-word">${esc(w.text)}</div></div><div class="tracing-lines">`;
+    for (let i = 0; i < state.lines; i++) {
+      if (i === 0 && state.sample) h += `<div class="trace-line model">${Array(state.repeat).fill(esc(w.text)).join(' ')}</div>`;
+      else h += '<div class="trace-line"></div>';
+    }
+    h += '</div></div>';
+  });
+  return h;
+}
+
+/* Look, read and tick: 1 picture + 4 words, tick the right one. Blocks alternate image-left / image-right. */
+function distractorPool() {
+  const m = new Map();
+  validWords().forEach(w => m.set(key(w.text), w.text.trim()));
+  state.extras.split(/[,;\n]/).map(s => s.trim()).filter(Boolean).forEach(s => { if (!m.has(key(s))) m.set(key(s), s); });
+  return m;
+}
+function tickPage(pg) {
+  const pool = distractorPool();
+  const rows = Math.ceil(pg.length / 2);
+  let h = `<div class="tick-grid" style="grid-template-rows:repeat(${rows},1fr);max-height:${rows * 120}mm">`;
+  pg.forEach((w, i) => {
+    const k = key(w.text);
+    const others = [...pool.entries()].filter(([pk]) => pk !== k).map(([, v]) => v);
+    const wrong = shuffled(others, 'd|' + k).slice(0, 3);
+    const opts = shuffled([w.text.trim(), ...wrong], 'o|' + k);
+    h += `<div class="tick-block${i % 2 ? ' rev' : ''}"><div class="tick-img pic-wrap">${picHTML(w)}</div><div class="tick-opts">`;
+    opts.forEach(o => { h += `<div class="opt"><span class="circ"></span><span class="w">${esc(o)}</span></div>`; });
+    h += '</div></div>';
+  });
+  return h + '</div>';
+}
+
+/* Matching: pictures on both sides, shuffled words in the middle. */
+function matchPage(pg) {
+  const n = pg.length, L = Math.ceil(n / 2), R = L;
+  const seed = 'm|' + pg.map(w => key(w.text)).join('|');
+  let order = null; // order[j] = index of the picture whose word is shown in slot j
+  for (let t = 0; t < 40; t++) {
+    order = shuffled(pg.map((_, i) => i), seed + '|' + t);
+    // avoid a word sitting right next to its own picture
+    if (order.every((p, j) => (p < L ? p : p - L) !== (j >> 1))) break;
+  }
+  let h = `<div class="match-grid" style="grid-template-rows:repeat(${2 * R},1fr);max-height:${2 * R * 60}mm">`;
+  pg.forEach((w, i) => {
+    const left = i < L, row = left ? i : i - L;
+    h += `<div class="match-box pic-wrap" style="grid-column:${left ? 1 : 3};grid-row:${2 * row + 1}/span 2">${picHTML(w)}</div>`;
+  });
+  order.forEach((p, j) => { h += `<div class="match-word" style="grid-column:2;grid-row:${j + 1}">${esc(pg[p].text.trim())}</div>`; });
+  return h + '</div>';
+}
+
+/* every printed page, in order: tracing, then tick, then matching */
+function pageList() {
+  const vw = validWords(), pages = [];
+  if (!vw.length) return pages;
+  if (state.types.trace) {
+    const per = wordsPerPage();
+    for (let i = 0; i < vw.length; i += per) pages.push({ body: tracePage(vw.slice(i, i + per)) });
+  }
+  if (state.types.tick) chunks(vw, 8).forEach(c => pages.push({ title: 'Look, read and tick.', body: tickPage(c) }));
+  if (state.types.match) chunks(vw, 12).forEach(c => pages.push({ title: 'Look and match.', body: matchPage(c) }));
+  return pages;
+}
+
 function generateHTML(title, preview) {
-  const vw = validWords(), per = wordsPerPage(), pages = [];
-  for (let i = 0; i < vw.length; i += per) pages.push(vw.slice(i, i + per));
+  const pages = pageList();
   let h = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${esc(title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>${WS_CSS}${preview ? PREVIEW_CSS : ''}</style></head><body>`;
+<style>${WS_CSS}${preview ? PREVIEW_CSS : ''}</style></head><body${state.color ? ' class="color"' : ''}>`;
   pages.forEach((pg, pi) => {
     h += '<div class="page">';
     if (pi === 0) {
@@ -440,18 +594,7 @@ function generateHTML(title, preview) {
 <div class="header-item"><span class="header-label">Teacher:</span><span class="header-line"></span></div>
 </div></div></div>`;
     }
-    h += '<div class="page-content">';
-    pg.forEach(w => {
-      h += '<div class="word-block"><div class="image-container">';
-      h += w.image ? `<img src="${w.image}" alt="${esc(w.text)}" class="worksheet-image">` : `<div class="emoji-placeholder">${esc(w.emoji)}</div>`;
-      h += `<div class="sample-word">${esc(w.text)}</div></div><div class="tracing-lines">`;
-      for (let i = 0; i < state.lines; i++) {
-        if (i === 0 && state.sample) h += `<div class="trace-line model">${Array(state.repeat).fill(esc(w.text)).join(' ')}</div>`;
-        else h += '<div class="trace-line"></div>';
-      }
-      h += '</div></div>';
-    });
-    h += '</div></div>';
+    h += `<div class="page-content">${pg.title ? `<div class="ex-title">${esc(pg.title)}</div>` : ''}${pg.body}</div></div>`;
   });
   return h + '</body></html>';
 }
@@ -506,22 +649,20 @@ frame.addEventListener('load', () => {
 });
 new ResizeObserver(() => requestAnimationFrame(fit)).observe($('#pvScroll'));
 
-function renderPreview() {
-  const vw = validWords(), per = wordsPerPage();
-  const pages = Math.ceil(vw.length / per);
+function updateStatsOnly() {
+  const vw = validWords(), pages = vw.length ? pageList().length : 0;
   $('#wordCount').textContent = `${vw.length} từ`;
-  $('#stats').textContent = vw.length ? `${pages} trang · ${Math.ceil(pages / 2)} tờ (in 2 mặt)` : '0 trang';
+  $('#stats').textContent = pages ? `${pages} trang · ${Math.ceil(pages / 2)} tờ (in 2 mặt)` : '0 trang';
+}
+function renderPreview() {
+  const vw = validWords();
+  updateStatsOnly();
   $('#pvEmpty').hidden = !!vw.length;
   box.hidden = !vw.length;
   if (vw.length) frame.srcdoc = generateHTML('preview', true);
 }
 const renderPreviewSoon = debounce(renderPreview, 250);
 function schedule() { renderPreviewSoon(); persist(); updateStatsOnly(); }
-function updateStatsOnly() {
-  const vw = validWords(), per = wordsPerPage(), pages = Math.ceil(vw.length / per);
-  $('#wordCount').textContent = `${vw.length} từ`;
-  $('#stats').textContent = vw.length ? `${pages} trang · ${Math.ceil(pages / 2)} tờ (in 2 mặt)` : '0 trang';
-}
 
 /* ---------- word editor ---------- */
 const wordsEl = $('#words');
@@ -670,12 +811,26 @@ function syncLogo() { const p = $('#logoPrev'); p.hidden = $('#btnLogoDel').hidd
 
 $('#lines').oninput = e => { state.lines = Number(e.target.value); $('#linesVal').textContent = state.lines; schedule(); };
 $('#perPage').onchange = e => { state.perPage = e.target.value; schedule(); };
-$('#sample').onchange = e => { state.sample = e.target.checked; $('#repeatWrap').hidden = !state.sample; schedule(); };
+$('#sample').onchange = e => { state.sample = e.target.checked; syncVisibility(); schedule(); };
 $('#repeat').oninput = e => { state.repeat = Number(e.target.value); $('#repeatVal').textContent = state.repeat; schedule(); };
+$('#color').onchange = e => { state.color = e.target.checked; schedule(); };
+$('#extras').addEventListener('input', e => { state.extras = e.target.value; schedule(); });
+
+function onTypeChange() {
+  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked };
+  if (!t.trace && !t.tick && !t.match) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
+  state.types = t; syncVisibility(); schedule();
+}
+['#tTrace', '#tTick', '#tMatch'].forEach(s => $(s).addEventListener('change', onTypeChange));
+function syncVisibility() {
+  $('#traceOpts').hidden = !state.types.trace;
+  $('#tickWrap').hidden = !state.types.tick;
+  $('#repeatWrap').hidden = !state.sample;
+}
 
 /* ---------- backup ---------- */
 $('#btnExport').onclick = () => {
-  const data = { app: 'trace-worksheet', version: 1, images: lib, vocab, draft: { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat } };
+  const data = { app: 'trace-worksheet', version: 2, images: lib, vocab, draft: { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color } };
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: 'trace-backup.json' });
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -688,14 +843,14 @@ $('#importFile').onchange = async e => {
     for (const i of d.images || []) if (!lib.some(x => x.id === i.id || x.data === i.data)) { lib.push(i); await Store.put('images', i); }
     lib.sort((a, b) => b.created - a.created);
     for (const v of d.vocab || []) { vocab = vocab.filter(x => x.key !== v.key).concat(v); await Store.put('vocab', v); }
-    if (d.draft) { Object.assign(state, d.draft); syncControls(); }
+    if (d.draft) { Object.assign(state, d.draft); state.types = normTypes(d.draft.types); state.extras = d.draft.extras || ''; state.color = !!d.draft.color; syncControls(); }
     refreshVocabList(); schedule(); toast('Đã khôi phục dữ liệu');
   } catch (err) { toast('File sao lưu không hợp lệ'); }
 };
 $('#btnReset').onclick = async () => {
   if (!confirm('Xoá toàn bộ ảnh, từ vựng đã lưu, logo và bản nháp trên trình duyệt này?')) return;
   await Store.clear(); lib = []; vocab = [];
-  Object.assign(state, { words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5 });
+  Object.assign(state, { words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5, types: { ...DEFAULT_TYPES }, extras: '', color: false });
   syncControls(); renderWords(); refreshVocabList(); renderPreview(); toast('Đã xoá dữ liệu');
 };
 
@@ -703,8 +858,12 @@ function syncControls() {
   $('#school').value = state.schoolName;
   $('#lines').value = state.lines; $('#linesVal').textContent = state.lines;
   $('#perPage').value = state.perPage;
-  $('#sample').checked = state.sample; $('#repeatWrap').hidden = !state.sample;
+  $('#sample').checked = state.sample;
   $('#repeat').value = state.repeat; $('#repeatVal').textContent = state.repeat;
+  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match;
+  $('#extras').value = state.extras;
+  $('#color').checked = state.color;
+  syncVisibility();
   syncLogo();
 }
 
