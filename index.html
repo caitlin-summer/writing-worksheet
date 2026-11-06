@@ -495,10 +495,11 @@ body.color .worksheet-image,body.color .pic{filter:none}
 .fill-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm 6mm;flex:1 1 auto;min-height:0}
 .fill-block{display:flex;align-items:stretch;border:1.2px solid #333;border-radius:2px;min-height:0;overflow:hidden}
 .fill-img{flex:0 0 42%}
-.fill-txt{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0 1.2mm;padding:2mm;font-weight:600;line-height:1.5;letter-spacing:.02em}
-.fill-txt .ch{display:inline-block;min-width:.55em;text-align:center}
-.fill-txt .sp{display:inline-block;width:.6em}
-.fill-txt .blank{display:inline-block;width:1.05em;height:1.2em;border:1.5px solid #333;border-radius:4px;background:#fff}
+.fill-txt{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:2mm;container-type:inline-size}
+.fill-word{display:flex;flex-wrap:nowrap;align-items:center;justify-content:center;gap:0 .08em;font-weight:600;line-height:1.5;white-space:nowrap}
+.fill-word .ch{display:block;text-align:center}
+.fill-word .sp{display:block;width:.4em}
+.fill-word .blank{display:block;flex:none;width:1.05em;height:1.2em;border:1.5px solid #333;border-radius:4px;background:#fff}
 
 /* Unscramble: number, picture, write-lines, scrambled letters */
 .scr-list{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
@@ -602,14 +603,15 @@ function fillPage(pg) {
     const cand = idx.length > 2 ? idx.slice(1) : idx; // keep the first letter visible when possible
     const n = Math.min(Number(state.fillN) || 1, Math.max(1, idx.length - 1));
     const miss = new Set(shuffled(cand, 'f|' + key(t)).slice(0, n));
-    const fs = chars.length > 8 ? 17 : chars.length > 5 ? 22 : 28;
-    let inner = '';
+    let inner = '', units = 0;
     chars.forEach((c, i) => {
-      if (c === ' ') inner += '<span class="sp"></span>';
-      else if (miss.has(i)) inner += '<span class="blank"></span>';
-      else inner += `<span class="ch">${esc(c)}</span>`;
+      if (c === ' ') { inner += '<span class="sp"></span>'; units += 0.5; }
+      else if (miss.has(i)) { inner += '<span class="blank"></span>'; units += 1.2; }
+      else { inner += `<span class="ch">${esc(c)}</span>`; units += 0.8; }
     });
-    h += `<div class="fill-block"><div class="fill-img pic-wrap">${picHTML(w)}</div><div class="fill-txt" style="font-size:${fs}pt">${inner}</div></div>`;
+    // never wrap: font size shrinks so the whole word fits on one line (fallback first for old browsers)
+    const fb = chars.length > 8 ? 15 : chars.length > 5 ? 20 : 28;
+    h += `<div class="fill-block"><div class="fill-img pic-wrap">${picHTML(w)}</div><div class="fill-txt"><div class="fill-word" style="font-size:${fb}pt;font-size:min(28pt,calc(94cqw / ${units.toFixed(2)}))">${inner}</div></div></div>`;
   });
   return h + '</div>';
 }
