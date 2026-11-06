@@ -208,6 +208,13 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
           <label class="check"><input type="checkbox" id="tMatch">
             <span>Nối ảnh với từ<small>Ảnh hai bên, từ ở giữa (đã xáo trộn), học sinh nối bằng bút.</small></span>
           </label>
+          <label class="check"><input type="checkbox" id="tFill">
+            <span>Điền chữ còn thiếu<small>VD: D_G → điền O. Mỗi từ kèm hình ảnh.</small></span>
+          </label>
+          <div id="fillWrap" hidden>
+            <label class="f" for="fillN">Số chữ bị khuyết mỗi từ</label>
+            <select id="fillN"><option value="1">1 chữ</option><option value="2">2 chữ</option></select>
+          </div>
         </div>
 
         <div id="traceOpts">
@@ -338,11 +345,11 @@ const DEFAULT_WORDS = [
   { id: 3, text: 'Birds', emoji: '🐦', image: null },
   { id: 4, text: 'Cows', emoji: '🐄', image: null }
 ];
-const DEFAULT_TYPES = { trace: true, tick: false, match: false };
+const DEFAULT_TYPES = { trace: true, tick: false, match: false, fill: false };
 const state = {
   words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, activeId: null,
   schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5,
-  types: { ...DEFAULT_TYPES }, extras: '', color: false
+  types: { ...DEFAULT_TYPES }, extras: '', color: false, fillN: 1
 };
 let lib = []; // image library: {id,name,data,vocab,created}
 let vocab = []; // saved vocabulary: {key,text,emoji,image}
@@ -363,7 +370,7 @@ function wordsPerPage() {
 
 /* ---------- persistence ---------- */
 const persist = debounce(async () => {
-  const slim = { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, words: state.words, nextId: state.nextId };
+  const slim = { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, fillN: state.fillN, words: state.words, nextId: state.nextId };
   await Store.put('kv', slim, 'draft');
 }, 500);
 
@@ -373,15 +380,15 @@ async function load() {
   vocab = await Store.all('vocab');
   const d = await Store.get('kv', 'draft');
   if (d) {
-    Object.assign(state, { schoolName: d.schoolName || '', logo: d.logo || null, lines: d.lines || 5, perPage: d.perPage || 'auto', sample: !!d.sample, repeat: d.repeat || 5, extras: d.extras || '', color: !!d.color });
+    Object.assign(state, { schoolName: d.schoolName || '', logo: d.logo || null, lines: d.lines || 5, perPage: d.perPage || 'auto', sample: !!d.sample, repeat: d.repeat || 5, extras: d.extras || '', color: !!d.color, fillN: Number(d.fillN) === 2 ? 2 : 1 });
     state.types = normTypes(d.types);
     if (Array.isArray(d.words)) { state.words = d.words; state.nextId = d.nextId || (Math.max(0, ...d.words.map(w => w.id)) + 1); }
   }
 }
 function normTypes(t) {
   const r = { ...DEFAULT_TYPES, ...(t || {}) };
-  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match;
-  if (!r.trace && !r.tick && !r.match) r.trace = true;
+  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match; r.fill = !!r.fill;
+  if (!r.trace && !r.tick && !r.match && !r.fill) r.trace = true;
   return r;
 }
 
@@ -480,6 +487,15 @@ body.color .worksheet-image,body.color .pic{filter:none}
 .match-grid{display:grid;grid-template-columns:52mm 1fr 52mm;flex:1 1 auto;min-height:0}
 .match-box{border:1.2px solid #333;border-radius:2px;height:calc(100% - 2mm);max-height:52mm;aspect-ratio:1/1;max-width:100%;align-self:center;justify-self:center}
 .match-word{justify-self:center;align-self:center;width:72%;height:11mm;border:1.2px solid #333;border-radius:99px;display:flex;align-items:center;justify-content:center;font-size:16pt;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden}
+
+/* Fill in the missing letters */
+.fill-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm 6mm;flex:1 1 auto;min-height:0}
+.fill-block{display:flex;align-items:stretch;border:1.2px solid #333;border-radius:2px;min-height:0;overflow:hidden}
+.fill-img{flex:0 0 42%}
+.fill-txt{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:0 1.2mm;padding:2mm;font-weight:600;line-height:1.5;letter-spacing:.02em}
+.fill-txt .ch{display:inline-block;min-width:.55em;text-align:center}
+.fill-txt .sp{display:inline-block;width:.6em}
+.fill-txt .blank{display:inline-block;width:1.05em;height:1.2em;border:1.5px solid #333;border-radius:4px;background:#fff}
 `;
 const PREVIEW_CSS = `html{background:#e8e2d2}body{background:transparent;width:210mm}.page{margin:0 0 16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}.page:last-child{margin-bottom:0}`;
 
@@ -562,7 +578,29 @@ function matchPage(pg) {
   return h + '</div>';
 }
 
-/* every printed page, in order: tracing, then tick, then matching */
+/* Fill in the missing letters: picture + word with 1-2 letters replaced by empty boxes. */
+function fillPage(pg) {
+  const rows = Math.ceil(pg.length / 2);
+  let h = `<div class="fill-grid" style="grid-template-rows:repeat(${rows},1fr);max-height:${rows * 120}mm">`;
+  pg.forEach(w => {
+    const t = w.text.trim(), chars = [...t];
+    const idx = chars.map((c, i) => /\p{L}/u.test(c) ? i : -1).filter(i => i >= 0);
+    const cand = idx.length > 2 ? idx.slice(1) : idx; // keep the first letter visible when possible
+    const n = Math.min(Number(state.fillN) || 1, Math.max(1, idx.length - 1));
+    const miss = new Set(shuffled(cand, 'f|' + key(t)).slice(0, n));
+    const fs = chars.length > 8 ? 17 : chars.length > 5 ? 22 : 28;
+    let inner = '';
+    chars.forEach((c, i) => {
+      if (c === ' ') inner += '<span class="sp"></span>';
+      else if (miss.has(i)) inner += '<span class="blank"></span>';
+      else inner += `<span class="ch">${esc(c)}</span>`;
+    });
+    h += `<div class="fill-block"><div class="fill-img pic-wrap">${picHTML(w)}</div><div class="fill-txt" style="font-size:${fs}pt">${inner}</div></div>`;
+  });
+  return h + '</div>';
+}
+
+/* every printed page, in order: tracing, then tick, then matching, then fill */
 function pageList() {
   const vw = validWords(), pages = [];
   if (!vw.length) return pages;
@@ -572,6 +610,7 @@ function pageList() {
   }
   if (state.types.tick) chunks(vw, 8).forEach(c => pages.push({ title: 'Look, read and tick.', body: tickPage(c) }));
   if (state.types.match) chunks(vw, 12).forEach(c => pages.push({ title: 'Look and match.', body: matchPage(c) }));
+  if (state.types.fill) chunks(vw, 8).forEach(c => pages.push({ title: 'Look and fill in the missing letters.', body: fillPage(c) }));
   return pages;
 }
 
@@ -815,22 +854,24 @@ $('#sample').onchange = e => { state.sample = e.target.checked; syncVisibility()
 $('#repeat').oninput = e => { state.repeat = Number(e.target.value); $('#repeatVal').textContent = state.repeat; schedule(); };
 $('#color').onchange = e => { state.color = e.target.checked; schedule(); };
 $('#extras').addEventListener('input', e => { state.extras = e.target.value; schedule(); });
+$('#fillN').onchange = e => { state.fillN = Number(e.target.value); schedule(); };
 
 function onTypeChange() {
-  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked };
-  if (!t.trace && !t.tick && !t.match) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
+  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked, fill: $('#tFill').checked };
+  if (!t.trace && !t.tick && !t.match && !t.fill) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
   state.types = t; syncVisibility(); schedule();
 }
-['#tTrace', '#tTick', '#tMatch'].forEach(s => $(s).addEventListener('change', onTypeChange));
+['#tTrace', '#tTick', '#tMatch', '#tFill'].forEach(s => $(s).addEventListener('change', onTypeChange));
 function syncVisibility() {
   $('#traceOpts').hidden = !state.types.trace;
   $('#tickWrap').hidden = !state.types.tick;
+  $('#fillWrap').hidden = !state.types.fill;
   $('#repeatWrap').hidden = !state.sample;
 }
 
 /* ---------- backup ---------- */
 $('#btnExport').onclick = () => {
-  const data = { app: 'trace-worksheet', version: 2, images: lib, vocab, draft: { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color } };
+  const data = { app: 'trace-worksheet', version: 2, images: lib, vocab, draft: { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, fillN: state.fillN } };
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: 'trace-backup.json' });
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -850,7 +891,7 @@ $('#importFile').onchange = async e => {
 $('#btnReset').onclick = async () => {
   if (!confirm('Xoá toàn bộ ảnh, từ vựng đã lưu, logo và bản nháp trên trình duyệt này?')) return;
   await Store.clear(); lib = []; vocab = [];
-  Object.assign(state, { words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5, types: { ...DEFAULT_TYPES }, extras: '', color: false });
+  Object.assign(state, { words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5, types: { ...DEFAULT_TYPES }, extras: '', color: false, fillN: 1 });
   syncControls(); renderWords(); refreshVocabList(); renderPreview(); toast('Đã xoá dữ liệu');
 };
 
@@ -860,7 +901,8 @@ function syncControls() {
   $('#perPage').value = state.perPage;
   $('#sample').checked = state.sample;
   $('#repeat').value = state.repeat; $('#repeatVal').textContent = state.repeat;
-  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match;
+  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match; $('#tFill').checked = state.types.fill;
+  $('#fillN').value = String(state.fillN || 1);
   $('#extras').value = state.extras;
   $('#color').checked = state.color;
   syncVisibility();
