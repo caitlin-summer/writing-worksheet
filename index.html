@@ -507,9 +507,9 @@ body.color .worksheet-image,body.color .pic{filter:none}
 .scr-row:last-child{border-bottom:none}
 .scr-num{width:10mm;height:10mm;border:1.5px solid #333;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13pt;line-height:1}
 .scr-pic{height:calc(100% - 2mm);max-height:34mm;aspect-ratio:1/1;max-width:100%;border:1.2px solid #333;border-radius:2px;justify-self:center}
-.scr-slots{display:flex;gap:3mm;align-items:flex-end;justify-content:center;flex-wrap:wrap;min-width:0}
-.scr-slots .slot{width:8mm;height:10mm;border-bottom:1.5px solid #333}
-.scr-slots .gap{width:5mm}
+.scr-slots{display:flex;flex-wrap:nowrap;gap:0 2.5mm;align-items:flex-end;justify-content:center;min-width:0}
+.scr-slots .slot{flex:1 1 0;min-width:1.5mm;max-width:8mm;height:10mm;border-bottom:1.5px solid #333}
+.scr-slots .gap{flex:0 0 3mm}
 .scr-bub{display:flex;align-items:center;justify-content:center;padding:2.5mm 7mm;border:1.5px solid #333;border-radius:50%/55%;font-weight:600;letter-spacing:.3em;text-indent:.3em;line-height:1.5;white-space:nowrap}
 `;
 const PREVIEW_CSS = `html{background:#e8e2d2}body{background:transparent;width:210mm}.page{margin:0 0 16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}.page:last-child{margin-bottom:0}`;
