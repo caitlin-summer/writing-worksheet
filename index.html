@@ -211,6 +211,9 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
           <label class="check"><input type="checkbox" id="tFill">
             <span>Điền chữ còn thiếu<small>VD: D_G → điền O. Mỗi từ kèm hình ảnh.</small></span>
           </label>
+          <label class="check"><input type="checkbox" id="tScr">
+            <span>Sắp xếp chữ cái<small>Chữ cái bị xáo trộn, học sinh viết lại từ đúng. Kèm hình ảnh.</small></span>
+          </label>
           <div id="fillWrap" hidden>
             <label class="f" for="fillN">Số chữ bị khuyết mỗi từ</label>
             <select id="fillN"><option value="1">1 chữ</option><option value="2">2 chữ</option></select>
@@ -345,7 +348,7 @@ const DEFAULT_WORDS = [
   { id: 3, text: 'Birds', emoji: '🐦', image: null },
   { id: 4, text: 'Cows', emoji: '🐄', image: null }
 ];
-const DEFAULT_TYPES = { trace: true, tick: false, match: false, fill: false };
+const DEFAULT_TYPES = { trace: true, tick: false, match: false, fill: false, scr: false };
 const state = {
   words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, activeId: null,
   schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5,
@@ -387,8 +390,8 @@ async function load() {
 }
 function normTypes(t) {
   const r = { ...DEFAULT_TYPES, ...(t || {}) };
-  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match; r.fill = !!r.fill;
-  if (!r.trace && !r.tick && !r.match && !r.fill) r.trace = true;
+  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match; r.fill = !!r.fill; r.scr = !!r.scr;
+  if (!r.trace && !r.tick && !r.match && !r.fill && !r.scr) r.trace = true;
   return r;
 }
 
@@ -496,6 +499,17 @@ body.color .worksheet-image,body.color .pic{filter:none}
 .fill-txt .ch{display:inline-block;min-width:.55em;text-align:center}
 .fill-txt .sp{display:inline-block;width:.6em}
 .fill-txt .blank{display:inline-block;width:1.05em;height:1.2em;border:1.5px solid #333;border-radius:4px;background:#fff}
+
+/* Unscramble: number, picture, write-lines, scrambled letters */
+.scr-list{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
+.scr-row{flex:1 1 0;min-height:0;display:grid;grid-template-columns:11mm 36mm 1fr auto;grid-template-rows:minmax(0,1fr);align-items:center;gap:4mm;border-bottom:1.2px dashed #888;padding:1.5mm 0}
+.scr-row:last-child{border-bottom:none}
+.scr-num{width:10mm;height:10mm;border:1.5px solid #333;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13pt;line-height:1}
+.scr-pic{height:calc(100% - 2mm);max-height:34mm;aspect-ratio:1/1;max-width:100%;border:1.2px solid #333;border-radius:2px;justify-self:center}
+.scr-slots{display:flex;gap:3mm;align-items:flex-end;justify-content:center;flex-wrap:wrap;min-width:0}
+.scr-slots .slot{width:8mm;height:10mm;border-bottom:1.5px solid #333}
+.scr-slots .gap{width:5mm}
+.scr-bub{display:flex;align-items:center;justify-content:center;padding:2.5mm 7mm;border:1.5px solid #333;border-radius:50%/55%;font-weight:600;letter-spacing:.3em;text-indent:.3em;line-height:1.5;white-space:nowrap}
 `;
 const PREVIEW_CSS = `html{background:#e8e2d2}body{background:transparent;width:210mm}.page{margin:0 0 16px;box-shadow:0 2px 10px rgba(0,0,0,.25)}.page:last-child{margin-bottom:0}`;
 
@@ -600,6 +614,26 @@ function fillPage(pg) {
   return h + '</div>';
 }
 
+/* Unscramble: picture + write-lines (one per letter) + scrambled letters. */
+function scramble(t) {
+  const chars = [...t.toLowerCase()].filter(c => c !== ' ');
+  if (chars.length < 2 || new Set(chars).size < 2) return chars;
+  let out = chars;
+  for (let i = 0; i < 30; i++) { out = shuffled(chars, 's|' + t + '|' + i); if (out.join('') !== chars.join('')) break; }
+  return out;
+}
+function scrPage(pg) {
+  let h = `<div class="scr-list" style="max-height:${pg.length * 46}mm">`;
+  pg.forEach((w, i) => {
+    const t = w.text.trim(), n = [...t].filter(c => c !== ' ').length;
+    const fs = n <= 5 ? 20 : n <= 7 ? 17 : n <= 9 ? 14 : 11;
+    let slots = '';
+    [...t].forEach(c => { slots += c === ' ' ? '<span class="gap"></span>' : '<span class="slot"></span>'; });
+    h += `<div class="scr-row"><div class="scr-num">${i + 1}</div><div class="scr-pic pic-wrap">${picHTML(w)}</div><div class="scr-slots">${slots}</div><div class="scr-bub" style="font-size:${fs}pt">${esc(scramble(t).join(' '))}</div></div>`;
+  });
+  return h + '</div>';
+}
+
 /* every printed page, in order: tracing, then tick, then matching, then fill */
 function pageList() {
   const vw = validWords(), pages = [];
@@ -610,6 +644,7 @@ function pageList() {
   }
   if (state.types.tick) chunks(vw, 8).forEach(c => pages.push({ title: 'Look, read and tick.', body: tickPage(c) }));
   if (state.types.match) chunks(vw, 12).forEach(c => pages.push({ title: 'Look and match.', body: matchPage(c) }));
+  if (state.types.scr) chunks(vw, 6).forEach(c => pages.push({ title: 'Look at the pictures. Look at the letters. Write the words.', body: scrPage(c) }));
   if (state.types.fill) chunks(vw, 8).forEach(c => pages.push({ title: 'Look and fill in the missing letters.', body: fillPage(c) }));
   return pages;
 }
@@ -857,11 +892,11 @@ $('#extras').addEventListener('input', e => { state.extras = e.target.value; sch
 $('#fillN').onchange = e => { state.fillN = Number(e.target.value); schedule(); };
 
 function onTypeChange() {
-  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked, fill: $('#tFill').checked };
-  if (!t.trace && !t.tick && !t.match && !t.fill) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
+  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked, fill: $('#tFill').checked, scr: $('#tScr').checked };
+  if (!t.trace && !t.tick && !t.match && !t.fill && !t.scr) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
   state.types = t; syncVisibility(); schedule();
 }
-['#tTrace', '#tTick', '#tMatch', '#tFill'].forEach(s => $(s).addEventListener('change', onTypeChange));
+['#tTrace', '#tTick', '#tMatch', '#tFill', '#tScr'].forEach(s => $(s).addEventListener('change', onTypeChange));
 function syncVisibility() {
   $('#traceOpts').hidden = !state.types.trace;
   $('#tickWrap').hidden = !state.types.tick;
@@ -901,7 +936,7 @@ function syncControls() {
   $('#perPage').value = state.perPage;
   $('#sample').checked = state.sample;
   $('#repeat').value = state.repeat; $('#repeatVal').textContent = state.repeat;
-  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match; $('#tFill').checked = state.types.fill;
+  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match; $('#tFill').checked = state.types.fill; $('#tScr').checked = state.types.scr;
   $('#fillN').value = String(state.fillN || 1);
   $('#extras').value = state.extras;
   $('#color').checked = state.color;
