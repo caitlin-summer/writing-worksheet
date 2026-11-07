@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Trace – Tạo phiếu tập viết</title>
 <meta name="description" content="Tạo phiếu tập viết (tracing worksheet) khổ A4 từ danh sách từ vựng, ảnh và logo trường. Chạy hoàn toàn trên trình duyệt, không cần đăng nhập.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✏️%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 256 256%22%3E%3Crect width=%22256%22 height=%22256%22 rx=%2258%22 fill=%22%231c2541%22/%3E%3Cg transform=%22translate%28128 128%29 scale%281.2%29 translate%28-108 -164%29%22%3E%3Ccircle cx=%22108%22 cy=%22148%22 r=%2244%22 fill=%22none%22 stroke=%22%23ffd24a%22 stroke-width=%2224%22/%3E%3Cpath d=%22M140 92H164V204L152 236 140 204Z%22 fill=%22%23ffd24a%22/%3E%3Cpath d=%22M152 236 146.7 222H157.3Z%22 fill=%22%23ff6a4d%22/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -131,14 +131,59 @@ dialog::backdrop{background:rgba(28,37,65,.45)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
 </style>
+<style id="upgrade">
+/* ===== UPGRADE v2: UI/UX + logo ===== */
+:root{--accent-btn:#c23a1b;--accent-btn-d:#a82f14;--ring:#2a5d94;--surface:#fffdf8;--muted:#e9e2cf}
+body{background-image:none;background:linear-gradient(#faf6ec,#f4eedb) fixed}
+header.top{padding:20px 0 16px}
+.mark{width:auto;height:auto;background:none;box-shadow:none;transform:none;border-radius:0}
+.brand-svg{width:48px;height:48px;display:block;filter:drop-shadow(0 3px 0 rgba(28,37,65,.18))}
+.brand h1{font-size:21px;font-weight:700}
+.brand p{font-size:13px}
+.card{padding:18px;transition:box-shadow .2s}
+.card h2{font-size:12.5px}
+.card h2 .n{width:24px;height:24px;background:var(--ink);color:var(--pencil)}
+.btn{min-height:40px;transition:transform .12s,box-shadow .12s,background .15s,border-color .15s}
+.btn.primary{box-shadow:0 3px 0 var(--ink)}
+.btn.primary:active{box-shadow:0 1px 0 var(--ink);transform:translateY(2px)}
+.btn:focus-visible,input:focus-visible,select:focus-visible,.thumb:focus-visible,summary:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+/* worksheet type picker: checkbox rows become selectable cards */
+.types{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.types>.f,#tickWrap,#fillWrap{grid-column:1/-1}
+.types .check{position:relative;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:12px 12px 12px 40px;min-height:76px;transition:border-color .15s,background .15s,box-shadow .15s}
+.types .check:hover{border-color:var(--field)}
+.types .check input{position:absolute;left:12px;top:13px;margin:0}
+.types .check:has(input:checked){border-color:var(--ink);background:#fff8dc;box-shadow:0 2px 0 var(--ink)}
+.types .check:has(input:focus-visible){outline:3px solid var(--ring);outline-offset:2px}
+.types .check>span{font-weight:600;font-size:13.5px;line-height:1.3}
+.types .check small{font-weight:400;margin-top:3px}
+@media (max-width:520px){.types{grid-template-columns:1fr}}
+#tickWrap,#fillWrap{background:var(--paper);border:1.5px dashed var(--line);border-radius:12px;padding:12px}
+/* word rows */
+.word{background:#fff;border-color:var(--line)}
+.word.active{border-color:var(--ink);box-shadow:0 0 0 3px rgba(255,210,74,.55)}
+.thumb:hover{border-color:var(--ink)}
+/* preview */
+.pv-scroll{background:repeating-linear-gradient(45deg,#e8e2d2 0 10px,#e3dcc9 10px 20px);border-width:1.5px}
+.pill{background:var(--ink);font-weight:600}
+.empty,.pv-empty{background:rgba(255,253,248,.7)}
+/* mobile: print button always reachable */
+@media (max-width:960px){
+  .actions{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(250,246,236,.96);border-top:1.5px solid var(--ink);gap:10px}
+  .actions .btn{flex:1;justify-content:center;min-height:46px}
+  .actions .btn.primary{flex:1.4}
+  .wrap{padding-bottom:96px}
+  #toast{bottom:88px}
+}
+@media (max-width:520px){.brand p{display:none}}
+.btn[aria-disabled="true"]{filter:grayscale(.4)}
+</style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <div class="mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#ffd24a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-      </div>
+      <div class="mark" aria-hidden="true"><svg class="brand-svg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" rx="58" fill="#1c2541"/><g transform="translate(128 110) translate(-108 -164)"><circle cx="108" cy="148" r="44" fill="none" stroke="#ffd24a" stroke-width="24"/><path d="M140 92H164V204L152 236 140 204Z" fill="#ffd24a"/><path d="M152 236 146.7 222H157.3Z" fill="#ff6a4d"/></g><path d="M44 186H212" stroke="#ff8a6a" stroke-width="9" stroke-linecap="round" stroke-dasharray="1 19"/></svg></div>
       <div>
         <h1>Trace</h1>
         <p>Tạo phiếu bài tập A4 cho lớp học</p>
