@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✏️%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Andika:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --paper:#faf6ec; --card:#fffdf8; --ink:#1c2541; --ink-2:#4b5675; --line:#e6dfcc;
@@ -214,6 +214,9 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
           <label class="check"><input type="checkbox" id="tScr">
             <span>Sắp xếp chữ cái<small>Chữ cái bị xáo trộn, học sinh viết lại từ đúng. Kèm hình ảnh.</small></span>
           </label>
+          <label class="check"><input type="checkbox" id="tWrite">
+            <span>Look and write<small>Các từ cho sẵn trong ô chữ, học sinh nhìn hình và viết đúng từ vào dưới hình.</small></span>
+          </label>
           <div id="writeWrap" hidden>
             <label class="f" for="writeN">Số dòng viết cả từ (bài điền chữ &amp; sắp xếp): <span class="range-val" id="writeNVal"></span></label>
             <input type="range" id="writeN" min="1" max="3" step="1">
@@ -225,6 +228,21 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
         </div>
 
         <div id="traceOpts">
+          <div style="margin-bottom:14px">
+            <label class="f" for="traceStyle">Kiểu tập viết</label>
+            <select id="traceStyle">
+              <option value="write">Viết trên dòng kẻ (học sinh đã biết viết)</option>
+              <option value="dash">Tô theo nét đứt (mầm non, chưa biết viết)</option>
+            </select>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="f" for="traceFit">Số trang tập viết</label>
+            <select id="traceFit">
+              <option value="off">Theo số từ mỗi trang (chọn bên dưới)</option>
+              <option value="1">Gọn trong 1 trang (tự thu nhỏ cho vừa)</option>
+              <option value="2">Chia đều trong 2 trang (tự thu nhỏ cho vừa)</option>
+            </select>
+          </div>
           <div class="grid2">
             <div>
               <label class="f" for="lines">Số dòng tập viết: <span class="range-val" id="linesVal"></span></label>
@@ -241,7 +259,7 @@ footer{margin-top:28px;text-align:center;color:var(--ink-2);font-size:12px}
               </select>
             </div>
           </div>
-          <div style="margin-top:14px">
+          <div style="margin-top:14px" id="sampleBox">
             <label class="check"><input type="checkbox" id="sample">
               <span>Thêm dòng mẫu mờ để tô theo<small>Dòng đầu tiên in sẵn từ màu xám nhạt.</small></span>
             </label>
@@ -352,10 +370,10 @@ const DEFAULT_WORDS = [
   { id: 3, text: 'Birds', emoji: '🐦', image: null },
   { id: 4, text: 'Cows', emoji: '🐄', image: null }
 ];
-const DEFAULT_TYPES = { trace: true, tick: false, match: false, fill: false, scr: false };
+const DEFAULT_TYPES = { trace: true, tick: false, match: false, fill: false, scr: false, write: false };
 const state = {
   words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, activeId: null,
-  schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5,
+  schoolName: '', logo: null, lines: 5, perPage: 'auto', traceFit: 'off', traceStyle: 'write', sample: false, repeat: 5,
   types: { ...DEFAULT_TYPES }, extras: '', color: false, fillN: 1, writeN: 2
 };
 let lib = []; // image library: {id,name,data,vocab,created}
@@ -377,7 +395,7 @@ function wordsPerPage() {
 
 /* ---------- persistence ---------- */
 const persist = debounce(async () => {
-  const slim = { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, fillN: state.fillN, writeN: state.writeN, words: state.words, nextId: state.nextId };
+  const slim = { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, traceFit: state.traceFit, traceStyle: state.traceStyle, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, fillN: state.fillN, writeN: state.writeN, words: state.words, nextId: state.nextId };
   await Store.put('kv', slim, 'draft');
 }, 500);
 
@@ -387,15 +405,15 @@ async function load() {
   vocab = await Store.all('vocab');
   const d = await Store.get('kv', 'draft');
   if (d) {
-    Object.assign(state, { schoolName: d.schoolName || '', logo: d.logo || null, lines: d.lines || 5, perPage: d.perPage || 'auto', sample: !!d.sample, repeat: d.repeat || 5, extras: d.extras || '', color: !!d.color, fillN: Number(d.fillN) === 2 ? 2 : 1, writeN: [1, 2, 3].includes(Number(d.writeN)) ? Number(d.writeN) : 2 });
+    Object.assign(state, { schoolName: d.schoolName || '', logo: d.logo || null, lines: d.lines || 5, perPage: d.perPage || 'auto', traceFit: ['1', '2'].includes(String(d.traceFit)) ? String(d.traceFit) : 'off', traceStyle: d.traceStyle === 'dash' ? 'dash' : 'write', sample: !!d.sample, repeat: d.repeat || 5, extras: d.extras || '', color: !!d.color, fillN: Number(d.fillN) === 2 ? 2 : 1, writeN: [1, 2, 3].includes(Number(d.writeN)) ? Number(d.writeN) : 2 });
     state.types = normTypes(d.types);
     if (Array.isArray(d.words)) { state.words = d.words; state.nextId = d.nextId || (Math.max(0, ...d.words.map(w => w.id)) + 1); }
   }
 }
 function normTypes(t) {
   const r = { ...DEFAULT_TYPES, ...(t || {}) };
-  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match; r.fill = !!r.fill; r.scr = !!r.scr;
-  if (!r.trace && !r.tick && !r.match && !r.fill && !r.scr) r.trace = true;
+  r.trace = !!r.trace; r.tick = !!r.tick; r.match = !!r.match; r.fill = !!r.fill; r.scr = !!r.scr; r.write = !!r.write;
+  if (!r.trace && !r.tick && !r.match && !r.fill && !r.scr && !r.write) r.trace = true;
   return r;
 }
 
@@ -458,19 +476,23 @@ body{font-family:'Lexend',sans-serif;background:#fff;color:#000;-webkit-print-co
 .header-item{display:flex;align-items:baseline;gap:6px}
 .header-label{font-weight:700;min-width:48px}
 .header-line{flex:1;border-bottom:1px solid #000;min-height:15px}
-.page-content{display:flex;flex-direction:column;flex:1;overflow:hidden}
-.word-block{display:flex;flex-direction:row;align-items:stretch;gap:10px;border-bottom:1px solid #333;flex:1;padding:4px 0;min-height:0}
-.word-block:first-of-type{padding-top:2px}
-.word-block:last-child{border-bottom:none;padding-bottom:0}
-.image-container{flex:0 0 38%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:4px 8px;gap:4px;min-height:0;overflow:hidden}
+.page-content{display:flex;flex-direction:column;flex:1;overflow:hidden;padding-bottom:5mm}
+.word-block{display:flex;flex-direction:row;align-items:stretch;gap:10px;border-bottom:1px solid #333;flex:1 1 0;padding:0;min-height:0;max-height:var(--mh,none)}
+.word-block:last-child{border-bottom:none}
+.page-content.nt{margin-top:-10px;padding-bottom:0}
+.image-container{flex:0 0 38%;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:8px 8px;gap:4px;min-height:0;overflow:hidden}
 .worksheet-image{flex:1 1 0;min-height:0;max-width:100%;max-height:100%;object-fit:contain;border:1px solid #555;border-radius:2px}
 .worksheet-image,.pic{filter:grayscale(100%) contrast(1.15) brightness(1.05)}
 body.color .worksheet-image,body.color .pic{filter:none}
-.emoji-placeholder{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;font-size:90px;line-height:1}
-.sample-word{flex-shrink:0;font-size:15pt;font-weight:700;text-align:center;letter-spacing:.5px;padding:2px 0;line-height:1.2}
-.tracing-lines{display:flex;flex-direction:column;justify-content:center;gap:16px;padding:4px 6px;flex:1;min-width:0}
-.trace-line{font-size:13.5pt;font-weight:400;letter-spacing:.5px;color:#ccc;border-bottom:1px dashed #bbb;word-spacing:.3em;padding:0 4px;height:28px;display:flex;align-items:center;line-height:1;white-space:nowrap;overflow:hidden}
-.trace-line.model{color:#b5b5b5}
+.emoji-placeholder{flex:1 1 0;min-height:0;display:flex;align-items:center;justify-content:center;font-size:var(--em,90px);line-height:1;overflow:hidden}
+.sample-word{flex-shrink:0;font-size:calc(15pt*var(--sw,1));font-weight:700;text-align:center;letter-spacing:.5px;padding:2px 0;line-height:1.2}
+.tracing-lines{display:flex;flex-direction:column;justify-content:space-evenly;padding:0 6px;flex:1;min-width:0;overflow:hidden}
+.trace-line{position:relative;height:0;border-bottom:1px dashed #bbb;flex:none}
+.trace-line.model span{position:absolute;left:4px;bottom:3px;font-size:calc(13.5pt*var(--s,1));font-weight:400;letter-spacing:.5px;color:#b5b5b5;word-spacing:.3em;white-space:nowrap;line-height:1}
+.dash-row{height:calc(72px*var(--s,1));flex:none;display:flex;align-items:center}
+.dash-row svg{display:block;width:100%;height:100%;overflow:visible}
+.dash-row .dt{font-family:'Andika','Century Gothic','Comic Sans MS',sans-serif;font-weight:700;fill:none;stroke:#6f6f6f;stroke-width:2.6;stroke-dasharray:6 6;stroke-linecap:round;stroke-linejoin:round}
+.dash-row .bl{stroke:#d4d4d4;stroke-width:2}
 
 /* shared by the tick + match exercises */
 .ex-title{flex-shrink:0;font-size:14pt;font-weight:500;font-style:italic;text-align:center;margin:2px 0 8px}
@@ -507,6 +529,14 @@ body.color .worksheet-image,body.color .pic{filter:none}
 .fill-word .ch{display:block;text-align:center}
 .fill-word .sp{display:block;width:.4em}
 .fill-word .blank{display:block;flex:none;width:1.05em;height:1.2em;border:1.5px solid #333;border-radius:4px;background:#fff}
+
+/* Look and write: word box on top, pictures with one write-line under each */
+.wb{flex:none;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2mm 4mm;border:1.5px solid #333;border-radius:3mm;padding:3.5mm 5mm;margin:0 0 5mm}
+.wb .wd{font-size:15pt;font-weight:600;line-height:1.3;padding:.4mm 3.5mm;border:1.2px dashed #888;border-radius:99px;white-space:nowrap}
+.lw-grid{display:grid;gap:4mm 6mm;flex:1 1 auto;min-height:0;padding-bottom:1mm}
+.lw-block{display:flex;flex-direction:column;min-height:0;gap:1mm}
+.lw-img{flex:1 1 0;min-height:0;border:1.2px solid #333;border-radius:2px}
+.lw-line{flex:none;height:9mm;border-bottom:1.5px solid #333}
 
 /* Unscramble: number, picture, write-lines, scrambled letters */
 .scr-list{display:flex;flex-direction:column;flex:1 1 auto;min-height:0}
@@ -546,14 +576,41 @@ const picHTML = w => w.image
   ? `<img class="pic" src="${w.image}" alt="${esc(w.text)}">`
   : `<div class="pic-emoji">${esc(w.emoji)}</div>`;
 
-function tracePage(pg) {
+/* Page content area is about 930px tall (A4 minus margins and header). Work out, for n blocks on one page, how many
+   lines fit and how far to scale line height/gap/font so every block fits; `shrink` lets it drop lines when it is still too tight. */
+function traceFit(n, dash) {
+  const hb = 930 / Math.max(1, n) - 2;  // usable height of one block (page content is ~930px)
+  const base = { sw: Math.max(0.7, Math.min(1, hb / 150)), em: Math.max(24, Math.min(90, Math.round(hb - 52))) };
+  if (!dash) {
+    // lines are spread evenly: rule -> line -> ... -> line -> rule, every gap equal. Keep each gap >= 30px (room to write), <= 72px.
+    let L = Math.max(1, Math.min(state.lines, Math.floor(hb / 30) - 1));
+    if (state.sample && L < 2 && state.lines >= 2) L = 2;
+    const P = Math.min(72, hb / (L + 1));
+    return { ...base, L, s: Math.max(0.7, Math.min(1, P / 36)), mh: (L + 1) * 72 + 2 };
+  }
+  const rowH = 72, gap = 10, minS = 0.7;
+  let L = state.lines, sc = 1;
+  for (; ; L--) {
+    sc = Math.min(1, (hb - (L + 1) * gap) / (L * rowH));
+    if (sc >= minS || L <= 1) break;
+  }
+  return { ...base, L, s: Math.max(0.35, Math.min(1, sc)), mh: L * rowH + (L + 1) * 34 };
+}
+/* dashed outline of the word: preschoolers trace over the dashes instead of writing */
+function dashRow(text) {
+  const t = text.trim(), W = Math.max(140, Math.round(t.length * 68 + 24));
+  return `<div class="dash-row"><svg viewBox="0 0 ${W} 115" preserveAspectRatio="xMinYMid meet"><line class="bl" x1="0" y1="88" x2="${W}" y2="88"/><text class="dt" x="8" y="88" font-size="100" letter-spacing="6">${esc(t)}</text></svg></div>`;
+}
+function tracePage(pg, shrink) {
   let h = '';
+  const dash = state.traceStyle === 'dash', f = traceFit(pg.length, dash);
   pg.forEach(w => {
-    h += '<div class="word-block"><div class="image-container">';
+    h += `<div class="word-block" style="--s:${f.s.toFixed(3)};--sw:${f.sw.toFixed(3)};--em:${f.em}px;--mh:${f.mh}px"><div class="image-container">`;
     h += w.image ? `<img src="${w.image}" alt="${esc(w.text)}" class="worksheet-image">` : `<div class="emoji-placeholder">${esc(w.emoji)}</div>`;
-    h += `<div class="sample-word">${esc(w.text)}</div></div><div class="tracing-lines">`;
-    for (let i = 0; i < state.lines; i++) {
-      if (i === 0 && state.sample) h += `<div class="trace-line model">${Array(state.repeat).fill(esc(w.text)).join(' ')}</div>`;
+    h += `<div class="sample-word">${esc(w.text)}</div></div><div class="tracing-lines${dash ? ' dash' : ''}">`;
+    for (let i = 0; i < f.L; i++) {
+      if (dash) h += dashRow(w.text);
+      else if (i === 0 && state.sample) h += `<div class="trace-line model"><span>${Array(state.repeat).fill(esc(w.text)).join(' ')}</span></div>`;
       else h += '<div class="trace-line"></div>';
     }
     h += '</div></div>';
@@ -603,6 +660,23 @@ function matchPage(pg) {
   return h + '</div>';
 }
 
+/* Look and write: shuffled word box on top, pictures in a grid, one write-line under each picture. */
+function writePage(pg) {
+  const n = pg.length;
+  // pick the column count whose cells are closest to square on the free area (~180 x 185mm)
+  let cols = 1, best = Infinity;
+  for (let c = 1; c <= 3; c++) {
+    const r = Math.ceil(n / c), sc = Math.abs(Math.log((180 / c) / Math.max(10, 185 / r - 12))) + 0.08 * (r * c - n);
+    if (sc < best - 1e-9) { best = sc; cols = c; }
+  }
+  const rows = Math.ceil(n / cols);
+  const bank = shuffled(pg.map(w => w.text.trim()), 'w|' + pg.map(w => key(w.text)).join('|'));
+  let h = `<div class="wb">${bank.map(t => `<span class="wd">${esc(t)}</span>`).join('')}</div>`;
+  h += `<div class="lw-grid" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},minmax(0,1fr))">`;
+  pg.forEach(w => { h += `<div class="lw-block"><div class="lw-img pic-wrap">${picHTML(w)}</div><div class="lw-line"></div></div>`; });
+  return h + '</div>';
+}
+
 /* Fill in the missing letters: picture + word with 1-2 letters replaced by empty boxes. */
 const writeRows = () => Array.from({ length: state.writeN }, (_, i) => `<div class="wrow">${i === 0 ? '<span>Write:</span>' : ''}</div>`).join('');
 function fillPage(pg) {
@@ -647,16 +721,23 @@ function scrPage(pg) {
   return h + '</div>';
 }
 
-/* every printed page, in order: tracing, then tick, then matching, then fill */
+/* every printed page, in order: tracing, then tick, then matching, then look-and-write, then unscramble, then fill */
 function pageList() {
   const vw = validWords(), pages = [];
   if (!vw.length) return pages;
   if (state.types.trace) {
-    const per = wordsPerPage();
-    for (let i = 0; i < vw.length; i += per) pages.push({ body: tracePage(vw.slice(i, i + per)) });
+    const fit = state.traceFit || 'off';
+    if (fit === 'off') {
+      const per = wordsPerPage();
+      for (let i = 0; i < vw.length; i += per) pages.push({ body: tracePage(vw.slice(i, i + per), false) });
+    } else {
+      const per = Math.ceil(vw.length / Number(fit));
+      for (let i = 0; i < vw.length; i += per) pages.push({ body: tracePage(vw.slice(i, i + per), true) });
+    }
   }
   if (state.types.tick) chunks(vw, 8).forEach(c => pages.push({ title: 'Look, read and tick.', body: tickPage(c) }));
   if (state.types.match) chunks(vw, 12).forEach(c => pages.push({ title: 'Look and match.', body: matchPage(c) }));
+  if (state.types.write) chunks(vw, 9).forEach(c => pages.push({ title: 'Look and write. Use the words in the box.', body: writePage(c) }));
   if (state.types.scr) chunks(vw, 6).forEach(c => pages.push({ title: 'Look at the pictures. Look at the letters. Write the words.', body: scrPage(c) }));
   if (state.types.fill) chunks(vw, 8).forEach(c => pages.push({ title: 'Look and fill in the missing letters.', body: fillPage(c) }));
   return pages;
@@ -666,7 +747,7 @@ function generateHTML(title, preview) {
   const pages = pageList();
   let h = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${esc(title)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Andika:wght@400;700&display=swap" rel="stylesheet">
 <style>${WS_CSS}${preview ? PREVIEW_CSS : ''}</style></head><body${state.color ? ' class="color"' : ''}>`;
   pages.forEach((pg, pi) => {
     h += '<div class="page">';
@@ -681,7 +762,7 @@ function generateHTML(title, preview) {
 <div class="header-item"><span class="header-label">Teacher:</span><span class="header-line"></span></div>
 </div></div></div>`;
     }
-    h += `<div class="page-content">${pg.title ? `<div class="ex-title">${esc(pg.title)}</div>` : ''}${pg.body}</div></div>`;
+    h += `<div class="page-content${pg.title ? '' : ' nt'}">${pg.title ? `<div class="ex-title">${esc(pg.title)}</div>` : ''}${pg.body}</div></div>`;
   });
   return h + '</body></html>';
 }
@@ -898,6 +979,8 @@ function syncLogo() { const p = $('#logoPrev'); p.hidden = $('#btnLogoDel').hidd
 
 $('#lines').oninput = e => { state.lines = Number(e.target.value); $('#linesVal').textContent = state.lines; schedule(); };
 $('#perPage').onchange = e => { state.perPage = e.target.value; schedule(); };
+$('#traceFit').onchange = e => { state.traceFit = e.target.value; syncVisibility(); schedule(); };
+$('#traceStyle').onchange = e => { state.traceStyle = e.target.value; syncVisibility(); schedule(); };
 $('#sample').onchange = e => { state.sample = e.target.checked; syncVisibility(); schedule(); };
 $('#repeat').oninput = e => { state.repeat = Number(e.target.value); $('#repeatVal').textContent = state.repeat; schedule(); };
 $('#color').onchange = e => { state.color = e.target.checked; schedule(); };
@@ -906,22 +989,24 @@ $('#fillN').onchange = e => { state.fillN = Number(e.target.value); schedule(); 
 $('#writeN').oninput = e => { state.writeN = Number(e.target.value); $('#writeNVal').textContent = state.writeN; schedule(); };
 
 function onTypeChange() {
-  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked, fill: $('#tFill').checked, scr: $('#tScr').checked };
-  if (!t.trace && !t.tick && !t.match && !t.fill && !t.scr) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
+  const t = { trace: $('#tTrace').checked, tick: $('#tTick').checked, match: $('#tMatch').checked, fill: $('#tFill').checked, scr: $('#tScr').checked, write: $('#tWrite').checked };
+  if (!t.trace && !t.tick && !t.match && !t.fill && !t.scr && !t.write) { t.trace = true; $('#tTrace').checked = true; toast('Cần chọn ít nhất một dạng bài'); }
   state.types = t; syncVisibility(); schedule();
 }
-['#tTrace', '#tTick', '#tMatch', '#tFill', '#tScr'].forEach(s => $(s).addEventListener('change', onTypeChange));
+['#tTrace', '#tTick', '#tMatch', '#tFill', '#tScr', '#tWrite'].forEach(s => $(s).addEventListener('change', onTypeChange));
 function syncVisibility() {
   $('#traceOpts').hidden = !state.types.trace;
+  $('#perPage').disabled = (state.traceFit || 'off') !== 'off';
   $('#tickWrap').hidden = !state.types.tick;
   $('#fillWrap').hidden = !state.types.fill;
   $('#writeWrap').hidden = !(state.types.fill || state.types.scr);
-  $('#repeatWrap').hidden = !state.sample;
+  $('#sampleBox').hidden = state.traceStyle === 'dash';
+  $('#repeatWrap').hidden = !state.sample || state.traceStyle === 'dash';
 }
 
 /* ---------- backup ---------- */
 $('#btnExport').onclick = () => {
-  const data = { app: 'trace-worksheet', version: 2, images: lib, vocab, draft: { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, fillN: state.fillN, writeN: state.writeN } };
+  const data = { app: 'trace-worksheet', version: 2, images: lib, vocab, draft: { schoolName: state.schoolName, logo: state.logo, lines: state.lines, perPage: state.perPage, traceFit: state.traceFit, traceStyle: state.traceStyle, sample: state.sample, repeat: state.repeat, types: state.types, extras: state.extras, color: state.color, fillN: state.fillN, writeN: state.writeN } };
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })), download: 'trace-backup.json' });
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
@@ -941,17 +1026,17 @@ $('#importFile').onchange = async e => {
 $('#btnReset').onclick = async () => {
   if (!confirm('Xoá toàn bộ ảnh, từ vựng đã lưu, logo và bản nháp trên trình duyệt này?')) return;
   await Store.clear(); lib = []; vocab = [];
-  Object.assign(state, { words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, schoolName: '', logo: null, lines: 5, perPage: 'auto', sample: false, repeat: 5, types: { ...DEFAULT_TYPES }, extras: '', color: false, fillN: 1, writeN: 2 });
+  Object.assign(state, { words: JSON.parse(JSON.stringify(DEFAULT_WORDS)), nextId: 5, schoolName: '', logo: null, lines: 5, perPage: 'auto', traceFit: 'off', traceStyle: 'write', sample: false, repeat: 5, types: { ...DEFAULT_TYPES }, extras: '', color: false, fillN: 1, writeN: 2 });
   syncControls(); renderWords(); refreshVocabList(); renderPreview(); toast('Đã xoá dữ liệu');
 };
 
 function syncControls() {
   $('#school').value = state.schoolName;
   $('#lines').value = state.lines; $('#linesVal').textContent = state.lines;
-  $('#perPage').value = state.perPage;
+  $('#perPage').value = state.perPage; $('#traceFit').value = state.traceFit || 'off'; $('#traceStyle').value = state.traceStyle || 'write';
   $('#sample').checked = state.sample;
   $('#repeat').value = state.repeat; $('#repeatVal').textContent = state.repeat;
-  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match; $('#tFill').checked = state.types.fill; $('#tScr').checked = state.types.scr;
+  $('#tTrace').checked = state.types.trace; $('#tTick').checked = state.types.tick; $('#tMatch').checked = state.types.match; $('#tFill').checked = state.types.fill; $('#tScr').checked = state.types.scr; $('#tWrite').checked = state.types.write;
   $('#fillN').value = String(state.fillN || 1);
   $('#writeN').value = state.writeN; $('#writeNVal').textContent = state.writeN;
   $('#extras').value = state.extras;
